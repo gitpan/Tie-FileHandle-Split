@@ -1,0 +1,54 @@
+NAME
+    Tie::FileHandle::Split - Filehandle tie that captures, splits and stores
+    output into files in a given path.
+
+SYNOPSIS
+    # $path should exist or the current process have # $size should be > 0
+    tie *HANDLE, 'Tie::FileHandle::Split', $path, $size;
+
+    (tied *HANDLE)->print( ' ' x $many_times_size );
+
+    # write all outstanding output from buffers to files (tied
+    *HANDLE)->write_buffers;
+
+    # get generated filenames to the moment (tied *HANDLE)->get_filenames();
+
+DESCRIPTION
+    This module, when tied to a filehandle, will capture and store all that
+    is output to that handle. You should then select a path to store files
+    and a size to split files.
+
+    write_buffers
+        "write_buffers" writes all outstanding buffers to files. It is
+        automatically called before destroying the object to ensure all data
+        written to the tied filehandle is written to files. If additional
+        data is written to the filehandle after a call to write_buffers a
+        new file will be created. On a standard file split operation it is
+        called after writting all data to the tied file handle ensure the
+        last bit of data is written (in the most common case where data size
+        is not exactly divisible by the split size).
+
+    get_filenames
+        "get_filenames" returns a list of the files generates until the
+        moment of the call. It should be used to get the names of files and
+        rename them to the desired filenames. In a standard splitting
+        operation "get_filenames" is called after outputting all data to the
+        filehandle and calling "write_buffers".
+
+TODO
+    *   Very untested for anything other than writing to the filehandle.
+
+    *   write_buffers should sync to disk to ensure data has been written.
+
+    *   observer for newly created filenames.
+
+BUGS
+    No known bugs. Please report and suggest tests to gbarco@cpan.org.
+
+AUTHORS AND COPYRIGHT
+    Written by Gonzalo Barco based on Tie::FileHandle::Buffer written by
+    Robby Walker ( robwalker@cpan.org )
+
+    You may redistribute/modify/etc. this module under the same terms as
+    Perl itself.
+

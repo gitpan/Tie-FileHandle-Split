@@ -1,0 +1,7 @@
+lib/Tie/FileHandle/Split.pm
+t/Split.t
+Changes
+Makefile.PL
+MANIFEST
+README
+META.yml                                 Module meta-data (added by MakeMaker)
