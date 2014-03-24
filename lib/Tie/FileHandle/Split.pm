@@ -8,11 +8,11 @@ Tie::FileHandle::Split - Filehandle tie that captures, splits and stores output 
 
 =head1 VERSION
 
-Version 0.91
+Version 0.92
 
 =cut
 
-$VERSION = 0.91;
+$VERSION = 0.92;
 
 =head1 DESCRIPTION
 
@@ -22,8 +22,8 @@ size to split files.
 
 =head1 SYNOPSIS
 
- # $path should exist or the current process have
- # $size should be > 0
+ # $path should exist or the current process have enough priv. for creation.
+ # $size should be > 0.
  tie *HANDLE, 'Tie::FileHandle::Split', $path, $size;
 
  # Register code to listen to file creation
@@ -52,7 +52,7 @@ use warnings;
 use vars qw(@ISA $VERSION);
 use base qw(Tie::FileHandle::Base);
 
-
+use File::Path;
 use File::Temp;
 use Carp;
 
@@ -70,6 +70,8 @@ sub TIEHANDLE {
 		filenames => [],
 		listeners => {},
 	};
+	
+	File::Path::make_path( $self->{path} ) unless -d $self->{path};
 
 	bless $self, $class;
 }

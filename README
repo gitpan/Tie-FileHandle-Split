@@ -3,7 +3,7 @@ NAME
     output into files in a given path.
 
 VERSION
-    Version 0.91
+    Version 0.92
 
 DESCRIPTION
     This module, when tied to a filehandle, will capture and store all that
@@ -11,8 +11,8 @@ DESCRIPTION
     and a size to split files.
 
 SYNOPSIS
-     # $path should exist or the current process have
-     # $size should be > 0
+     # $path should exist or the current process have enough priv. for creation.
+     # $size should be > 0.
      tie *HANDLE, 'Tie::FileHandle::Split', $path, $size;
 
      # Register code to listen to file creation
