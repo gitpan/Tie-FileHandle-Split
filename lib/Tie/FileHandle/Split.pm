@@ -1,22 +1,18 @@
 #!/usr/local/bin/perl
 
+package Tie::FileHandle::Split;
+
 =head1 NAME
 
 Tie::FileHandle::Split - Filehandle tie that captures, splits and stores output into files in a given path.
 
-=head1 SYNOPSIS
+=head1 VERSION
 
-# $path should exist or the current process have
-# $size should be > 0
-tie *HANDLE, 'Tie::FileHandle::Split', $path, $size;
+Version 0.91
 
-(tied *HANDLE)->print( ' ' x $many_times_size );
+=cut
 
-# write all outstanding output from buffers to files
-(tied *HANDLE)->write_buffers;
-
-# get generated filenames to the moment
-(tied *HANDLE)->get_filenames();
+$VERSION = 0.91;
 
 =head1 DESCRIPTION
 
@@ -24,21 +20,44 @@ This module, when tied to a filehandle, will capture and store all that
 is output to that handle. You should then select a path to store files and a
 size to split files.
 
-=cut
+=head1 SYNOPSIS
 
-package Tie::FileHandle::Split;
+ # $path should exist or the current process have
+ # $size should be > 0
+ tie *HANDLE, 'Tie::FileHandle::Split', $path, $size;
+
+ # Register code to listen to file creation
+ (tied *HANDLE)->add_file_creation_listeners( sub {
+	my ( $tied_object, $filename) = @_;
+	print "Created $filename with size: " . -s $filename . "\n";
+ } );
+
+ # Will create int( $many_times_size / $split_size) files of size $split_size.
+ # Will call each listener int( $many_times_size / $split_size) times.
+ # Buffers will hold $many_times_size % $split_size outstanding bytes.
+ (tied *HANDLE)->print( ' ' x $many_times_size );
+
+ # Write all outstanding output from buffers to files.
+ # The last file created can be smaller than split_size
+ (tied *HANDLE)->write_buffers;
+
+ # Get generated filenames to the moment
+ (tied *HANDLE)->get_filenames();
+
+=cut
 
 use strict;
 use warnings;
 
 use vars qw(@ISA $VERSION);
 use base qw(Tie::FileHandle::Base);
-$VERSION = 0.9;
+
 
 use File::Temp;
+use Carp;
 
-# TIEHANDLE
-# Usage: tie *HANDLE, 'Tie::FileHandle::Split'
+# Tie::FileHandle implementation
+# Usage: tie *HANDLE, 'Tie::FileHandle::Split', $path, $split_size
 sub TIEHANDLE {
 	my ( $class, $path, $split_size ) = @_;
 
@@ -49,11 +68,13 @@ sub TIEHANDLE {
 		buffer => '',
 		buffer_size => 0,
 		filenames => [],
+		listeners => {},
 	};
 
 	bless $self, $class;
 }
 
+# Tie::FileHandle implementation
 # Print to the selected handle
 sub PRINT {
 	my ( $self, $data ) = @_;
@@ -72,9 +93,15 @@ sub _write_files{
 		my ($fh, $filename) = File::Temp::tempfile( DIR => $self->{path} );
 
 
-		# added complexity to work buffer with a cursor and doing a single buffer chomp
+		# Added complexity to work buffer with a cursor and doing a single buffer chomp
 		$fh->print( substr $self->{buffer},$min_size * $written_chunks, $min_size * ++$written_chunks );
+		$fh->autoflush;
 		$fh->close;
+
+		# Call listeners
+		foreach my $listener ( keys %{$self->{listeners}} ) {
+			&{$self->{listeners}->{$listener}}( $self, $filename );
+		}
 
 		push @{$self->{filenames}}, $filename;
 	}
@@ -88,19 +115,17 @@ sub _write_files{
 	}
 }
 
-=over 4
+=head1 METHODS
 
-=item write_buffers
+=head3 C<write_buffers>
 
 C<write_buffers> writes all outstanding buffers to files.
 It is automatically called before destroying the object to ensure all data
 written to the tied filehandle is written to files. If additional data is
-written to the filehandle after a call to write_buffers a new file will be
+written to the filehandle after a call to C<write_buffers> a new file will be
 created. On a standard file split operation it is called after writting all data
 to the tied file handle ensure the last bit of data is written (in the most
 common case where data size is not exactly divisible by the split size).
-
-=back
 
 =cut
 
@@ -115,16 +140,12 @@ sub write_buffers {
 	}
 }
 
-=over 4
-
-=item get_filenames
+=head3 C<get_filenames>
 
 C<get_filenames> returns a list of the files generates until the moment of the
 call. It should be used to get the names of files and rename them to the
 desired filenames. In a standard splitting operation C<get_filenames> is
 called after outputting all data to the filehandle and calling C<write_buffers>.
-
-=back
 
 =cut
 
@@ -133,6 +154,83 @@ sub get_filenames {
 	my ( $self ) = @_;
 
 	return @{$self->{filenames}} if defined $self->{filenames};
+}
+
+=head3 C<add_file_creation_listeners>
+
+C<add_file_creation_listeners> adds methods to the list of listeners of the
+file creation event. Methods should be code, array, arrayref or any
+non-recursive structure resulting from them. Since methods are added to a HASH,
+several elements pointing to the same piece of code will be added only once.
+Code observing this event is called once per file created of the $split_size
+size defined in the tie clause. When called the Tie::FileHandle::Split object
+and the complete path to the newly created file is passed as parameter. The file
+is of the specified C<$split_size> defined in the tie clause unless generated
+from a C<write_buffers> call, has been closed and an effort has been made for it
+to sync (untested).
+
+=cut
+
+sub add_file_creation_listeners {
+	my ( $self, @listeners ) = @_;
+
+	foreach my $listener ( @listeners ) {
+		if( ref( $listener ) eq 'CODE' ) {
+			$self->{listeners}->{$listener} = $listener;
+		} elsif ( ref( $listener ) eq 'ARRAY' ) {
+			$self->add_file_creation_listeners( @$listener );
+		} elsif ( ref( $listener ) eq 'ARRAYREF' ) {
+			$self->add_file_creation_listeners( $listener );
+		} else {
+			croak("Unsupported structure in add_file_creation_listeners. " .
+						"Can use any structure containing CODE, ARRAY and ARRAYREF. " .
+						"Looks like a " . ref( $listener ) );
+		}
+	}
+}
+
+=head3 C<remove_file_creation_listeners>
+
+C<remove_file_creation_listeners> removes a list of methods from the list of
+listeners of the file creation event. Methods should be code, array, arrayref or
+any non-recursive structure resulting from them.
+
+=cut
+
+sub remove_file_creation_listeners {
+	my ( $self, @listeners ) = @_;
+
+	foreach my $listener ( @listeners ) {
+		if( ref( $listener ) eq 'CODE' ) {
+			delete $self->{listeners}->{$listener};
+		} elsif ( ref( $listener ) eq 'ARRAY' ) {
+			$self->remove_file_creation_listeners( @$listener );
+		} elsif ( ref( $listener ) eq 'ARRAYREF' ) {
+			$self->remove_file_creation_listeners( $listener );
+		} else {
+			croak("Unsupported structure in add_file_creation_listeners. " .
+			"Can use any structure containing CODE, ARRAY and ARRAYREF. " .
+			"Looks like a " . ref( $listener ) );
+		}
+	}
+}
+
+=head3 C<clear_file_creation_listeners>
+
+C<clear_file_creation_listeners> removes all methods from the list of listeners
+of the file creation event.
+
+=cut
+
+sub clear_file_creation_listeners {
+	my ( $self ) = @_;
+
+	$self->{listeners} = {};
+}
+
+sub _get_listeners {
+	my ( $self ) = @_;
+	return map $_,keys $self->{listeners};
 }
 
 sub DESTROY {
@@ -149,9 +247,7 @@ sub DESTROY {
 
 =item * Very untested for anything other than writing to the filehandle.
 
-=item * write_buffers should sync to disk to ensure data has been written.
-
-=item * observer for newly created filenames.
+=item * write_buffers should sync to disk, untested and seeking advice.
 
 =back
 
@@ -163,7 +259,7 @@ No known bugs. Please report and suggest tests to gbarco@cpan.org.
 
 =head1 AUTHORS AND COPYRIGHT
 
-Written by Gonzalo Barco based on Tie::FileHandle::Buffer written by Robby Walker ( robwalker@cpan.org )
+Written by Gonzalo Barco based on Tie::FileHandle::Buffer written by Robby Walker ( robwalker@cpan.org ).
 
 You may redistribute/modify/etc. this module under the same terms as Perl itself.
 
