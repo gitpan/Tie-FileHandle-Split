@@ -36,6 +36,8 @@ my $file_created = 0; my $code = sub { $file_created++; };
 	is ( -s $_[1], $split_size, 'Listener called with filename created with correct split_size.' );
 } );
 
+is( (tied *TEST)->_get_listeners(), 2, 'Listeners registered from scalars.' );
+
 TEST->print( ' ' x 1 ); @files = (tied *TEST)->get_filenames();
 is( scalar @files, 1, 'First file generated at split_size.' );
 

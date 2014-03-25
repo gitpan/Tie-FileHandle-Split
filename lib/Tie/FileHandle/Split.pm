@@ -8,11 +8,11 @@ Tie::FileHandle::Split - Filehandle tie that captures, splits and stores output 
 
 =head1 VERSION
 
-Version 0.92
+Version 0.93
 
 =cut
 
-$VERSION = 0.92;
+$VERSION = 0.93;
 
 =head1 DESCRIPTION
 
@@ -46,6 +46,7 @@ size to split files.
 
 =cut
 
+use 5.10.0;
 use strict;
 use warnings;
 
@@ -70,7 +71,7 @@ sub TIEHANDLE {
 		filenames => [],
 		listeners => {},
 	};
-	
+
 	File::Path::make_path( $self->{path} ) unless -d $self->{path};
 
 	bless $self, $class;
@@ -232,7 +233,9 @@ sub clear_file_creation_listeners {
 
 sub _get_listeners {
 	my ( $self ) = @_;
-	return map $_,keys $self->{listeners};
+	# Behold! Dereferencing fixes incompatibility with pre 5.14 perl.
+	# Both keys and each are affected if a hashref is passed.
+	return map $_,keys %{$self->{listeners}};
 }
 
 sub DESTROY {
