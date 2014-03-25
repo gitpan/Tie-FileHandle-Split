@@ -21,4 +21,4 @@ requires:
   Carp: 1.22
   File::Temp: 0.16
   Tie::FileHandle::Base: 0.1
-version: 0.93
+version: 0.94

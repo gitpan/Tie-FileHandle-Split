@@ -8,11 +8,11 @@ Tie::FileHandle::Split - Filehandle tie that captures, splits and stores output 
 
 =head1 VERSION
 
-Version 0.93
+Version 0.94
 
 =cut
 
-$VERSION = 0.93;
+$VERSION = 0.94;
 
 =head1 DESCRIPTION
 
@@ -265,6 +265,8 @@ No known bugs. Please report and suggest tests to gbarco@cpan.org.
 =head1 AUTHORS AND COPYRIGHT
 
 Written by Gonzalo Barco based on Tie::FileHandle::Buffer written by Robby Walker ( robwalker@cpan.org ).
+
+Project repository can be found at https://github.com/gbarco/Tie-FileHandle-Split.
 
 You may redistribute/modify/etc. this module under the same terms as Perl itself.
 

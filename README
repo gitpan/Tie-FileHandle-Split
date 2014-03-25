@@ -3,7 +3,7 @@ NAME
     output into files in a given path.
 
 VERSION
-    Version 0.93
+    Version 0.94
 
 DESCRIPTION
     This module, when tied to a filehandle, will capture and store all that

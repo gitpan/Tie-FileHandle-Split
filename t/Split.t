@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests=>40;
+use Test::More tests=>41;
 
 use lib '../lib';
 
