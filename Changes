@@ -1,5 +1,8 @@
 Revision history for Perl extension Tie::FileHandle::Split.
 
+0.95 Tue Mar 25 17:55:00 2014
+	- fixed write buffer cursor errors.
+
 0.94 Tue Mar 25 10:45:00 2014
 	- fixed tests.
 

@@ -8,11 +8,11 @@ Tie::FileHandle::Split - Filehandle tie that captures, splits and stores output 
 
 =head1 VERSION
 
-Version 0.94
+Version 0.95
 
 =cut
 
-$VERSION = 0.94;
+$VERSION = 0.95;
 
 =head1 DESCRIPTION
 
@@ -95,9 +95,8 @@ sub _write_files{
 	while ( $self->{buffer_size} - $min_size * $written_chunks >= $min_size ) {
 		my ($fh, $filename) = File::Temp::tempfile( DIR => $self->{path} );
 
-
 		# Added complexity to work buffer with a cursor and doing a single buffer chomp
-		$fh->print( substr $self->{buffer},$min_size * $written_chunks, $min_size * ++$written_chunks );
+		$fh->print( substr $self->{buffer},$min_size * $written_chunks++, $min_size );
 		$fh->autoflush;
 		$fh->close;
 

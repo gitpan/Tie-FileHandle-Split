@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests=>41;
+use Test::More tests=>42;
 
 use lib '../lib';
 
@@ -51,8 +51,7 @@ is( scalar @files, 1, 'No extra file at second split_size - 1 split_size.' );
 
 is( $file_created, 1, 'Creation listener not called again before file is created.' );
 
-(tied *TEST)->remove_file_creation_listeners( $code ); $file_created = 0;
-TEST->print( ' ' x 1 ); @files = (tied *TEST)->get_filenames();
+(tied *TEST)->remove_file_creation_listeners( $code ); $file_created = 0; TEST->print( ' ' x 1 ); @files = (tied *TEST)->get_filenames();
 is( scalar @files, 2, 'Second file generated at split_size * 2.' );
 
 is( $file_created, 0, 'Creation listener not called after removing from listeners.' );
@@ -63,15 +62,12 @@ is( scalar @files, 2, 'No extra file generated when write_buffers is called on a
 TEST->print( ' ' x ( $split_size - 1 ) ); @files = (tied *TEST)->get_filenames();
 is( scalar @files, 2, 'No extra file generated after write_buffers at split_size - 1.' );
 
-(tied *TEST)->add_file_creation_listeners( [ $code, sub { $file_created++ } , sub { $file_created++ } ] );
-(tied *TEST)->remove_file_creation_listeners( $code );
-TEST->print( ' ' x 1 ); @files = (tied *TEST)->get_filenames();
+(tied *TEST)->add_file_creation_listeners( [ $code, sub { $file_created++ } , sub { $file_created++ } ] ); (tied *TEST)->remove_file_creation_listeners( $code ); TEST->print( ' ' x 1 ); @files = (tied *TEST)->get_filenames();
 is( scalar @files, 3, 'Third file generated after split_size * 3 after a call to write_buffers.' );
 
 is( $file_created, 2, 'Creation listener registered correctly from arryref, unregistered correctly with remove_file_creation_listeners.' );
 
-$file_created = 0; (tied *TEST)->clear_file_creation_listeners();
-TEST->print( 'x' x 1 ); (tied *TEST)->write_buffers(); @files = (tied *TEST)->get_filenames();
+$file_created = 0; (tied *TEST)->clear_file_creation_listeners(); TEST->print( 'x' x 1 ); (tied *TEST)->write_buffers(); @files = (tied *TEST)->get_filenames();
 is( scalar @files, 4, 'Fourth file generated after split_size * 3 + 1 calling write_buffers.' );
 
 is( $file_created, 0, 'Creation listener not called after call to clear_file_creation_listeners.' );
@@ -82,8 +78,12 @@ is( -s $files[scalar @files - 1], 1, 'File generated from write_buffers on parti
 open( LAST_FILE, '<', $files[scalar @files - 1] ); my $last_file_content = <LAST_FILE>; close ( LAST_FILE );
 is( $last_file_content, 'x', 'Check regression where incorrect buffer parts where output to split files.');
 
-(tied *TEST)->add_file_creation_listeners( $code );
-TEST->print( '0' x ( $split_size * 2 ) ); @files = (tied *TEST)->get_filenames();
+(tied *TEST)->add_file_creation_listeners( $code ); TEST->print( '0' x ( $split_size * 2 ) ); @files = (tied *TEST)->get_filenames();
 is( scalar @files, 6, 'Fifth and sixth file generated from single print of split_size * 2.' );
 
 is( $file_created, 2, 'Creation listener called twice when 2 files are created.' );
+
+(tied *TEST)->clear_file_creation_listeners();
+
+$split_size = 1024 * 1024; tie *TEST, 'Tie::FileHandle::Split', $dir, $split_size; TEST->print( 'x' x ( 4 * 1024 * 1024 ) ); @files = (tied *TEST)->get_filenames();
+is( scalar @files, 4, 'Regresion test! 4 files created for 4MiB with 1MiB split_size in a single print generate 4 files.' );

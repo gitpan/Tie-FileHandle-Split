@@ -3,7 +3,7 @@ NAME
     output into files in a given path.
 
 VERSION
-    Version 0.94
+    Version 0.95
 
 DESCRIPTION
     This module, when tied to a filehandle, will capture and store all that
@@ -84,6 +84,9 @@ BUGS
 AUTHORS AND COPYRIGHT
     Written by Gonzalo Barco based on Tie::FileHandle::Buffer written by
     Robby Walker ( robwalker@cpan.org ).
+
+    Project repository can be found at
+    https://github.com/gbarco/Tie-FileHandle-Split.
 
     You may redistribute/modify/etc. this module under the same terms as
     Perl itself.
